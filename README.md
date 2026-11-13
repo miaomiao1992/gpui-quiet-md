@@ -45,7 +45,7 @@
 
 **⚡ Fast, the native kind of fast.** The whole interface is drawn on the GPU by Rust and [GPUI](https://www.gpui.rs/). No WebView, no Electron. In a one-million-character document, typing, deleting and scrolling all stay under 6 ms per frame at P95.
 
-**🔒 Local-first. Your files are yours.** No account, no cloud, and nothing goes over the network by default (the optional update check aside). Your library is an ordinary folder on your computer, and each note is one XML file. Manage it with Git, iCloud or any sync tool you like; if you ever stop using Quiet.md, your files are still there.
+**🔒 Local-first. Your files are yours.** No account, no cloud, and nothing goes over the network by default (the optional update check aside). Your library is an ordinary folder on your computer: the sidebar's folders are real folders, and each note is a file named by its title (`.xml`, or `.md` for Markdown). Manage it with Git, iCloud or any sync tool you like; if you ever stop using Quiet.md, your files are still there.
 
 **📝 A full rich-text editor that speaks Feishu (Lark) DocxXML.** Notes are saved in the DocxXML format used by Feishu (Lark) Docs, so copy-paste, import and export keep their structure. Headings, to-dos, tables, columns, callouts, code, math, images and attachments — the blocks you reach for when writing documents are all there.
 
@@ -72,7 +72,7 @@
 
 You can also download from [Quiet.md](https://quiet.md/?lang=en). Every release and its SHA-256 checksums are on [GitHub Releases](https://github.com/s1dashu/quiet-md/releases).
 
-On first launch, Quiet.md puts a **Getting started** guide into an empty library — a ten-minute tour of the main features. Existing notes are never overwritten.
+On first launch, Quiet.md asks for the interface language, where to keep your library and the quick-note shortcut, and offers to copy in notes from Obsidian, Logseq, iA Writer or Typora. An empty library gets a **Getting started** guide — a ten-minute tour of the main features. Existing notes are never overwritten.
 
 The interface is available in English, Simplified Chinese, Japanese, Korean and Spanish.
 
@@ -100,7 +100,7 @@ A 120 Hz display gives each frame 8.3 ms. Even at P95 on a million-character doc
 
 - **Editing**: headings, ordered and bulleted lists, to-dos, quotes, code blocks with syntax highlighting, LaTeX math, tables (with merged cells), callouts, columns, images, attachments and covers. Markdown shortcuts such as `#`, `-`, `[]` and `>`, plus a `/` slash menu.
 - **Organizing**: a document tree, pinning, favorites, full-text search and a trash.
-- **Import and export**: import Markdown and Feishu (Lark) DocxXML; export Markdown and PDF, or print directly. Pasting from Feishu or a web page keeps the structure.
+- **Import and export**: import Markdown folders (Obsidian picture embeds and callouts included) and Feishu (Lark) DocxXML; export Markdown and PDF, or print directly. Pasting from Feishu or a web page keeps the structure.
 - **Shortcuts**: press `⌘ /` (`Ctrl+/` on Windows) to see them all. Every one can be rebound. On Windows, Ctrl stands in for ⌘ and Alt for ⌥; the app and the Getting started guides show the keys for your system.
 - **Themes**: four built-in styles — Craft, Feishu, Notion and Obsidian — each with a dark variant, or write your own in CSS; see [docs/THEMES.md](docs/THEMES.md).
 
@@ -112,6 +112,7 @@ Thanks to everyone who has helped build Quiet.md. Issues and pull requests are w
 
 ## Recent updates
 
+- **0.1.11** (Nov 13): the library is now real folders, with files named by title; older libraries move over automatically, with a backup. A new first launch that sets the language, library location and quick-note shortcut and imports notes from Obsidian and other Markdown apps. Japanese, Spanish and Korean interfaces; display math in Markdown; documents reopen where you left off; faster launch and lower memory use.
 - **0.1.10** (Nov 10): choose a document type from the New menu, scroll wide tables horizontally, preserve Markdown column alignment, and keep the caret visible in long fields.
 - **0.1.9** (Nov 8): fix Cmd+Q on macOS, unresponsive window controls on Windows, and text selection hidden by highlight colors.
 - **0.1.8** (Nov 9): edit local Markdown files in place, import folders while keeping `.md`, and organize notes in nested folders with drag and undo. Lower image and preview memory use; steadier table resizing and refined menus. First launch chooses a supported system language. Experimental Linux AppImage packaging.

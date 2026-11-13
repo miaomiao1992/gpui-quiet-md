@@ -45,7 +45,7 @@
 
 **⚡ Rápida, con la rapidez de lo nativo.** Toda la interfaz se dibuja en la GPU con Rust y [GPUI](https://www.gpui.rs/). Sin WebView ni Electron. En un documento de un millón de caracteres, escribir, borrar y desplazarse se mantienen por debajo de 6 ms por fotograma en el P95.
 
-**🔒 Local primero. Tus archivos son tuyos.** Sin cuenta, sin nube y, por defecto, nada sale a la red (salvo la búsqueda de actualizaciones, que es opcional). Tu biblioteca es una carpeta normal en tu ordenador y cada nota es un archivo XML. Gestiónala con Git, iCloud o la herramienta de sincronización que prefieras; si algún día dejas de usar Quiet.md, tus archivos siguen ahí.
+**🔒 Local primero. Tus archivos son tuyos.** Sin cuenta, sin nube y, por defecto, nada sale a la red (salvo la búsqueda de actualizaciones, que es opcional). Tu biblioteca es una carpeta normal en tu ordenador: las carpetas de la barra lateral son carpetas reales y cada nota es un archivo con el nombre de su título (`.xml`, o `.md` para Markdown). Gestiónala con Git, iCloud o la herramienta de sincronización que prefieras; si algún día dejas de usar Quiet.md, tus archivos siguen ahí.
 
 **📝 Un editor de texto enriquecido completo que habla DocxXML de Feishu (Lark).** Las notas se guardan en el formato DocxXML de los documentos de Feishu (Lark), así que copiar y pegar, importar y exportar conservan la estructura. Títulos, tareas, tablas, columnas, destacados, código, ecuaciones, imágenes y adjuntos: están todos los bloques que buscas al escribir documentos.
 
@@ -72,7 +72,7 @@
 
 También puedes descargarla desde [Quiet.md](https://quiet.md/?lang=en). Todas las versiones y sus sumas SHA-256 están en [GitHub Releases](https://github.com/s1dashu/quiet-md/releases).
 
-En el primer arranque, Quiet.md coloca la guía **Getting started** en una biblioteca vacía: un recorrido de diez minutos por las funciones principales. Nunca sobrescribe las notas que ya tengas.
+En el primer arranque eliges el idioma, dónde guardar la biblioteca y el atajo de notas rápidas, y puedes copiar tus notas de Obsidian, Logseq, iA Writer o Typora. Una biblioteca vacía recibe la guía **Getting started**: un recorrido de diez minutos por las funciones principales. Nunca sobrescribe las notas que ya tengas.
 
 La interfaz está disponible en inglés, chino simplificado, japonés, coreano y español.
 
@@ -100,7 +100,7 @@ Una pantalla de 120 Hz da 8.3 ms a cada fotograma. Incluso en el P95 de un docum
 
 - **Edición**: títulos, listas numeradas y con viñetas, tareas, citas, bloques de código con resaltado de sintaxis, ecuaciones LaTeX, tablas (con celdas combinadas), destacados, columnas, imágenes, adjuntos y portadas. Atajos de Markdown como `#`, `-`, `[]` y `>`, y un menú `/`.
 - **Organización**: árbol de documentos, fijados, favoritos, búsqueda en todo el texto y papelera.
-- **Importar y exportar**: importa Markdown y DocxXML de Feishu (Lark); exporta a Markdown y PDF, o imprime directamente. Al pegar desde Feishu o una página web se conserva la estructura.
+- **Importar y exportar**: importa carpetas de Markdown (con las imágenes incrustadas y los callouts de Obsidian) y DocxXML de Feishu (Lark); exporta a Markdown y PDF, o imprime directamente. Al pegar desde Feishu o una página web se conserva la estructura.
 - **Atajos**: pulsa `⌘ /` (`Ctrl+/` en Windows) para verlos todos. Todos se pueden reasignar. En Windows, Ctrl sustituye a ⌘ y Alt a ⌥; la app y las guías Getting started muestran las teclas de tu sistema.
 - **Temas**: cuatro estilos integrados (Craft, Feishu, Notion y Obsidian), cada uno con su variante oscura, o escribe el tuyo en CSS; consulta [docs/THEMES.md](docs/THEMES.md).
 
@@ -112,6 +112,7 @@ Gracias a todas las personas que han ayudado a construir Quiet.md. Los issues y 
 
 ## Novedades recientes
 
+- **0.1.11** (13 nov): la biblioteca pasa a ser carpetas reales, con archivos nombrados por su título; las bibliotecas anteriores se trasladan solas, con copia de seguridad. Un nuevo primer arranque para elegir idioma, ubicación de la biblioteca y atajo de notas rápidas, e importar notas de Obsidian y otras apps de Markdown. Interfaz en japonés, español y coreano; fórmulas en bloque en Markdown; los documentos se abren donde los dejaste; arranque más rápido y menos memoria.
 - **0.1.10** (10 nov): elige el tipo de documento en el menú **Nuevo**, desplaza las tablas anchas en horizontal, conserva la alineación de columnas de Markdown y mantén visible el cursor en los campos largos.
 - **0.1.9** (8 nov): corrige Cmd+Q en macOS, los botones de ventana que no respondían en Windows y la selección de texto oculta por los colores de resaltado.
 - **0.1.8** (9 nov): edita archivos Markdown locales en su sitio, importa carpetas conservando los `.md` y organiza las notas en carpetas anidadas arrastrando, con deshacer. Menos memoria para imágenes y vistas previas, cambio de tamaño de tablas más estable y menús pulidos. El primer arranque elige un idioma del sistema compatible. Paquete AppImage experimental para Linux.
