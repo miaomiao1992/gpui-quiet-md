@@ -44,7 +44,7 @@ layer.paste(BLUE, (0, 0), mask)
 # "dev" centred on the visible stretch of the band's middle line (from the
 # icon's top edge to its right edge), centred by the ink, not the font's box.
 mid = (near + far) / 2
-f = font(int(0.17 * side * S))
+f = font(int(0.22 * side * S))
 x0, y0, x1, y1 = ImageDraw.Draw(Image.new("L", (1, 1))).textbbox((0, 0), "dev", font=f)
 word = Image.new("RGBA", (x1 - x0, y1 - y0), (0, 0, 0, 0))
 ImageDraw.Draw(word).text((-x0, -y0), "dev", font=f, fill=(255, 255, 255, 255))
