@@ -368,6 +368,11 @@ pub struct Onboarding {
     page_at: Instant,
     page: Page,
     root: PathBuf,
+    /// 界面语言: the system's at first, applied as it is picked.
+    lang: crate::settings::Lang,
+    /// The language menu is open, with this one under the keys.
+    lang_menu: Option<crate::settings::Lang>,
+    lang_anchor: std::rc::Rc<std::cell::Cell<Option<Bounds<Pixels>>>>,
     hotkey: String,
     recording: bool,
     hotkey_error: Option<&'static str>,
@@ -415,13 +420,14 @@ impl Onboarding {
         let lib = root.clone();
         cx.spawn(async move |this, cx| {
             let found = cx.background_executor().spawn(async move { discover(lib) }).await;
-            let _ = this.update(cx, |w, cx| { w.chosen = vec![false; found.len()]; w.found = Some(found); cx.notify(); });
+            let _ = this.update(cx, |w, cx| { w.chosen = found.iter().map(|f| f.export.is_none()).collect(); w.found = Some(found); cx.notify(); });
         }).detach();
         let now = Instant::now();
         let cut_at = now + Duration::from_secs_f32(HOLD);
         Onboarding {
             focus,
             film: film::decode(), film_tex: None, opened: now, cut_at, replay, page_at: cut_at, page: Page::Setup, root,
+            lang: crate::settings::prefs().lang(), lang_menu: None, lang_anchor: Default::default(),
             hotkey: crate::shortcuts::global_key(), recording: false, hotkey_error: None,
             picked: vec![], found: None, show_all: false, chosen: vec![], error: None, scripted, incoming: Some(incoming), importing: None, _ticker: ticker,
         }
@@ -487,6 +493,19 @@ impl Onboarding {
     }
 
     fn key_down(&mut self, ev: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(at) = self.lang_menu {
+            use crate::settings::Lang;
+            let i = Lang::ALL.iter().position(|l| *l == at).unwrap_or(0);
+            match ev.keystroke.key.as_str() {
+                "escape" => self.lang_menu = None,
+                "up" => self.lang_menu = Some(Lang::ALL[i.saturating_sub(1)]),
+                "down" => self.lang_menu = Some(Lang::ALL[(i + 1).min(Lang::ALL.len() - 1)]),
+                "enter" | "space" => self.set_lang(at, cx),
+                _ => {}
+            }
+            cx.stop_propagation();
+            return cx.notify();
+        }
         if !self.recording {
             if self.cut(cx) { return }
             if ev.keystroke.key == "enter" && ev.keystroke.modifiers == Modifiers::default() { self.advance(window, cx); }
@@ -503,6 +522,15 @@ impl Onboarding {
         if !(m.platform || m.control || m.alt) { self.hotkey_error = Some(tr("请包含 ⌘、⌃ 或 ⌥", "Include ⌘, ⌃ or ⌥")); }
         else if key == "cmd-alt-space" || key == "alt-cmd-space" { self.hotkey_error = Some(tr("⌘ ⌥ Space 用于打开上次的文档，请换一个", "⌘ ⌥ Space opens the last document; pick another")); }
         else { self.hotkey = key; self.hotkey_error = None; return self.stop_recording(cx) }
+        cx.notify();
+    }
+
+    /// Show the pages in `lang` now. Saved with the library at the end; a
+    /// replay saves it at once, since the library is already there.
+    fn set_lang(&mut self, lang: crate::settings::Lang, cx: &mut Context<Self>) {
+        self.lang_menu = None;
+        self.lang = lang;
+        if self.replay { save_lang(lang); } else { crate::settings::show_lang(lang); }
         cx.notify();
     }
 
@@ -534,6 +562,7 @@ impl Onboarding {
         PENDING.store(false, Ordering::Relaxed);
         // The chosen library may already hold preferences (one synced from another Mac).
         crate::settings::load();
+        save_lang(self.lang);
         crate::settings::apply_appearance(&crate::settings::prefs().appearance);
         crate::settings::sync_dark(cx);
         crate::themes::load(&crate::settings::prefs().theme_id(), false, || cx.text_system().all_font_names());
@@ -567,6 +596,17 @@ impl Onboarding {
     /// Where notes live and the quick-note shortcut: the title on the left,
     /// the two settings as cards floating in on the right.
     fn setup_page(&self, since: f32, cx: &mut Context<Self>) -> AnyElement {
+        let anchor = self.lang_anchor.clone();
+        let open = self.lang_menu.is_some();
+        let current = self.lang;
+        let lang = card(arrive(since, 0.24, 0.8))
+            .child(card_icon("globe"))
+            .child(card_text(tr("界面语言", "Language").into(), tr("默认跟随系统，之后可以在设置里更改", "Follows the system; you can change it in Settings").into(), false))
+            .child(soft_button("onb-lang", current.name()).gap(px(6.)).when(open, |d| d.bg(Theme::fill_hover_strong()))
+                .child(ui::icon("chevron-down", 12., Theme::icon()))
+                .child(canvas(move |b, _, _| anchor.set(Some(b)), |_, _, _, _| {}).absolute().inset_0())
+                .relative()
+                .on_click(cx.listener(move |w, _, _, cx| { w.lang_menu = if open { None } else { Some(current) }; cx.notify(); })));
         let lib = card(arrive(since, 0.3, 0.8))
             .child(card_icon("folder"))
             .child(card_text(short_path(&self.root).into(), tr("笔记以文件保存在这里，在访达里也能直接打开", "Notes are saved here as files you can open in Finder").into(), false))
@@ -594,10 +634,37 @@ impl Onboarding {
                 .child(lifted(over, 56., 64., true, false, "Quiet.md"))
                 .child(lifted(over, 15., 23., false, true, tr("一个又快又安静的本地笔记应用。", "A fast, quiet, local notes app."))))
             .child(div().w_full().max_w(px(560.)).mt(px(40.)).flex().flex_col().gap(px(12.))
+                .child(lang)
                 .child(lib)
                 .children(hotkey)
                 .children(self.error.clone().map(|e| note_owned(e, true))))
+            .children(self.lang_menu(cx))
             .into_any_element()
+    }
+
+    /// 界面语言's menu under its button, each language in its own name.
+    fn lang_menu(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
+        use crate::settings::Lang;
+        let focused = self.lang_menu?;
+        let b = self.lang_anchor.get()?;
+        let rows = Lang::ALL.map(|l| {
+            let g = SharedString::from(format!("onb-lang-{}", l.code()));
+            ui::menu_row(g.clone(), g.clone())
+                .when(l == focused, |d| d.bg(Theme::fill_hover()))
+                .child(div().flex_1().min_w_0().overflow_hidden().child(ui::menu_label(l.name(), g.clone(), gpui::white())))
+                .child(div().flex_none().w(px(14.)).when(l == self.lang, |d| d.child(ui::menu_glyph("check", 14., g.clone()))))
+                .on_hover(cx.listener(move |w, hovered: &bool, _, cx| if *hovered && w.lang_menu != Some(l) { w.lang_menu = Some(l); cx.notify(); }))
+                .on_click(cx.listener(move |w, _, _, cx| w.set_lang(l, cx)))
+        });
+        let anchor = self.lang_anchor.clone();
+        let menu = ui::popover().id("onb-lang-menu").occlude().flex()
+            .on_mouse_down_out(cx.listener(move |w, ev: &MouseDownEvent, _, cx| {
+                if anchor.get().is_some_and(|b| b.contains(&ev.position)) { return }
+                w.lang_menu = None;
+                cx.notify();
+            }))
+            .child(div().w(px(160.)).py(px(ui::MENU_PAD_Y)).flex().flex_col().children(rows));
+        Some(deferred(anchored().anchor(Corner::TopRight).position(point(b.right(), b.bottom() + px(4.))).snap_to_window_with_margin(px(8.)).child(menu)).with_priority(2).into_any_element())
     }
 
     fn import_page(&self, since: f32, cx: &mut Context<Self>) -> AnyElement {
@@ -615,7 +682,8 @@ impl Onboarding {
         let found = self.found.as_ref().filter(|f| !f.is_empty()).map(|found| {
             let shown = if self.show_all || found.len() <= FOUND_SHOWN + 1 { found.len() } else { FOUND_SHOWN };
             let mut rows: Vec<AnyElement> = found.iter().take(shown).enumerate().map(|(i, f)| match f.export {
-                Some((zh, en)) => row(f.app, Some(tr(zh, en).into()), div()).into_any_element(),
+                // Kept in the app's own format: nothing to tick, it says what to do instead.
+                Some((zh, en)) => row(f.app, Some(tr(zh, en).into()), div().text_size(px(12.)).text_color(Theme::text_caption()).child(tr("需先导出", "Export first"))).into_any_element(),
                 None => {
                     let on = self.chosen.get(i).copied().unwrap_or(false);
                     let title = if f.app == "Markdown" { f.name.clone() } else { format!("{} · {}", f.app, f.name) };
@@ -731,6 +799,14 @@ fn tick(on: bool) -> Div {
 }
 
 /// One row of a group: title and description on the left, a control on the right.
+/// Keep `lang` in the library's preferences (a replay's, or the new one's).
+fn save_lang(lang: crate::settings::Lang) {
+    let mut p = crate::settings::prefs();
+    if p.lang() == lang { return }
+    p.set_lang(lang);
+    if let Err(e) = crate::settings::save(&p) { log::warn!("onboarding: language not saved: {e:#}"); }
+}
+
 fn row(title: impl Into<SharedString>, desc: Option<SharedString>, control: impl IntoElement) -> Div {
     div().w_full().min_h(px(48.)).px(px(16.)).py(px(10.)).flex().items_center().justify_between().gap(px(16.))
         .child(div().flex_1().min_w_0().flex().flex_col().gap(px(2.))

@@ -4,7 +4,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use gpui::prelude::*;
-use gpui::{div, px, AnyElement, ClickEvent, FontWeight, Window, App};
+use gpui::{div, px, relative, AnyElement, ClickEvent, FontWeight, Window, App};
 
 use crate::theme::Theme;
 use crate::ui::icon;
@@ -120,13 +120,14 @@ pub fn card(on_close: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> 
         list = list.child(line(crate::settings::tr(zh, en).into()));
     }
     // A continuous-corner white surface; the faint shadow follows its radius.
-    Some(crate::ui::continuous_surface(RADIUS, Theme::bg_body()).id("changelog").flex_none().min_w_0().overflow_hidden().mx(px(crate::sidebar::SB_X - 4.)).mb(px(2.)).pl(px(12.)).pr(px(6.)).pt(px(8.)).pb(px(10.))
+    // At most half the sidebar; a longer list scrolls inside the card.
+    Some(crate::ui::continuous_surface(RADIUS, Theme::bg_body()).id("changelog").flex_none().max_h(relative(0.5)).flex().flex_col().min_w_0().overflow_hidden().mx(px(crate::sidebar::SB_X - 4.)).mb(px(2.)).pl(px(12.)).pr(px(6.)).pt(px(8.)).pb(px(10.))
         .rounded(px(RADIUS)).shadow(crate::theme::shadow_card())
-        .child(div().w_full().min_w_0().flex().items_center().justify_between()
+        .child(div().flex_none().w_full().min_w_0().flex().items_center().justify_between()
             .child(div().text_size(px(13.)).line_height(px(20.)).font_weight(FontWeight::SEMIBOLD).child(title))
             .child(div().id("changelog-close").size(px(20.)).flex().items_center().justify_center().rounded(px(6.)).cursor_pointer()
                 .hover(|s| s.bg(Theme::fill_hover())).child(icon("x", 12., Theme::icon()))
                 .on_click(move |e, w, cx| { PENDING.store(false, Ordering::Relaxed); *MIGRATED.lock().unwrap() = None; on_close(e, w, cx); })))
-        .child(list)
+        .child(div().id("changelog-list").flex_1().min_h_0().overflow_y_scroll().child(list))
         .into_any_element())
 }
