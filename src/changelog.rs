@@ -12,24 +12,24 @@ use crate::ui::icon;
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const RADIUS: f32 = 12.;
 /// 0.1.11's first note; a library moved this launch says it with its counts instead.
-const REAL_FOLDERS: &str = "文档库改为真实文件夹：访达里看到的就是侧栏，文件以标题命名；同步盘里的文档库会先征求同意再改";
+const REAL_FOLDERS: &str = "文档库改为真实文件夹，以标题命名，和侧栏一致";
 
 /// Each version's notes: (version, [(中文, English)]). Only the running
 /// version's are shown; a version without notes shows nothing.
 const NOTES: &[(&str, &[(&str, &str)])] = &[
     ("0.1.11", &[
-        (REAL_FOLDERS, "The library is now real folders: Finder shows what the sidebar shows, files named by title; a library in a synced folder asks first"),
-        ("全新的首次启动：选择文档库位置、设置随手记快捷键，并可从 Obsidian、Logseq、Typora 等导入已有笔记", "A new first launch: pick where the library lives, set the quick-note shortcut, and bring notes from Obsidian, Logseq, Typora and more"),
-        ("「打开」直接编辑本机 Markdown 文件，「导入」把文件和文件夹复制进文档库", "Open edits a Markdown file where it is; Import copies files and folders into the library"),
-        ("新增日语、西班牙语和韩语界面", "New Japanese, Spanish, and Korean interface languages"),
-        ("设置新增网页搜索引擎、打开链接的浏览器、窗口背景和界面字号", "Settings: choose the web search site, the browser links open in, the window background, and the interface size"),
-        ("再次打开文档时回到上次的阅读位置", "Documents reopen where you left off"),
-        ("原样粘贴（⌘⇧V / Ctrl+Shift+V），不把 Markdown 符号转成格式", "Paste as written (Cmd+Shift+V / Ctrl+Shift+V), without turning Markdown into formatting"),
-        ("图片按显示大小解码，内存占用更低；Markdown 里内嵌的 base64 图片可以正常显示", "Pictures are decoded at their shown size, using less memory; base64 images inside Markdown now show"),
-        ("不换行的代码块可以横向滚动，拖选文字到窗口边缘时自动滚动", "Unwrapped code blocks scroll sideways; drag-selecting past the edge scrolls the page"),
-        ("修复点击勾选框等控件后页面跳动、中日韩文字自动换行处光标到不了行尾、macOS 截图无法粘贴", "Fix the page jumping after clicking checkboxes and other controls, the caret not reaching the end of wrapped CJK lines, and pasting screenshots on macOS"),
-        ("Windows：显卡设备丢失（如睡眠唤醒、更新驱动）后不再崩溃", "Windows: no more crash when the graphics device is lost, such as after sleep or a driver update"),
-        ("自动更新只接受来自 download.quiet.md 的 HTTPS 安装包", "Updates are only accepted from download.quiet.md over HTTPS"),
+        (REAL_FOLDERS, "The library is now real folders named by title, matching the sidebar"),
+        ("全新的首次启动，可从 Obsidian、Typora 等导入笔记", "A new first launch that can bring notes from Obsidian, Typora and more"),
+        ("「打开」就地编辑 Markdown，「导入」复制进文档库", "Open edits Markdown in place; Import copies into the library"),
+        ("新增日语、西班牙语和韩语界面", "Japanese, Spanish, and Korean interfaces"),
+        ("可设置网页搜索、链接浏览器、窗口背景和界面字号", "Set the web search site, link browser, window background, and interface size"),
+        ("文档回到上次的阅读位置", "Documents reopen where you left off"),
+        ("新增原样粘贴（⌘⇧V / Ctrl+Shift+V）", "Paste as written (Cmd+Shift+V / Ctrl+Shift+V)"),
+        ("图片更省内存，Markdown 内嵌图片可正常显示", "Pictures use less memory; images embedded in Markdown show"),
+        ("代码块可横向滚动，拖选到边缘时自动滚动", "Code blocks scroll sideways; drag-selecting scrolls at the edge"),
+        ("修复页面跳动、换行处光标和截图粘贴", "Fix page jumps, the caret at wrapped lines, and pasting screenshots"),
+        ("Windows：显卡设备丢失后不再崩溃", "Windows: no crash when the graphics device is lost"),
+        ("更新只从官方地址经 HTTPS 下载", "Updates download only from the official site over HTTPS"),
     ]),
     ("0.1.10", &[
         ("Linux AppImage 支持应用内检查、下载并重启更新", "Check, download, and restart to update the Linux AppImage in the app"),
