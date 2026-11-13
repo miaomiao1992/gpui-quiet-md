@@ -664,7 +664,10 @@ impl Onboarding {
                 cx.notify();
             }))
             .child(div().w(px(160.)).py(px(ui::MENU_PAD_Y)).flex().flex_col().children(rows));
-        Some(deferred(anchored().anchor(Corner::TopRight).position(point(b.right(), b.bottom() + px(4.))).snap_to_window_with_margin(px(8.)).child(menu)).with_priority(2).into_any_element())
+        let menu = anchored().anchor(Corner::TopRight).position(point(b.right(), b.bottom() + px(4.))).snap_to_window_with_margin(px(8.)).child(menu);
+        // A replay is itself drawn deferred, over the notes, and deferred
+        // drawing cannot nest: there the menu is simply the page's last child.
+        Some(if self.replay { menu.into_any_element() } else { deferred(menu).with_priority(2).into_any_element() })
     }
 
     fn import_page(&self, since: f32, cx: &mut Context<Self>) -> AnyElement {
