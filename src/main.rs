@@ -76,6 +76,12 @@ fn set_app_icon() {
     use objc::runtime::Object;
     let png = include_bytes!("../assets/branding/app-icon.png");
     unsafe {
+        // A bundle with its own icon keeps it (the preview's has a dev ribbon);
+        // only a bare binary (`cargo run`) borrows the app icon.
+        let bundle: *mut Object = msg_send![class!(NSBundle), mainBundle];
+        let key: *mut Object = msg_send![class!(NSString), stringWithUTF8String: c"CFBundleIconFile".as_ptr()];
+        let own: *mut Object = msg_send![bundle, objectForInfoDictionaryKey: key];
+        if !own.is_null() { return }
         let data: *mut Object = msg_send![class!(NSData), dataWithBytes:png.as_ptr() length:png.len()];
         let image: *mut Object = msg_send![class!(NSImage), alloc];
         let image: *mut Object = msg_send![image, initWithData:data];
