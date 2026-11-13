@@ -4,20 +4,36 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use gpui::prelude::*;
-use gpui::{div, px, AnyElement, ClickEvent, FontWeight, Window, App};
+use gpui::{div, px, relative, AnyElement, ClickEvent, FontWeight, Window, App};
 
 use crate::theme::Theme;
 use crate::ui::icon;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const RADIUS: f32 = 12.;
+/// 0.1.11's first note; a library moved this launch says it with its counts instead.
+const REAL_FOLDERS: &str = "文档库改为真实文件夹，以标题命名，和侧栏一致";
 
 /// Each version's notes: (version, [(中文, English)]). Only the running
 /// version's are shown; a version without notes shows nothing.
 const NOTES: &[(&str, &[(&str, &str)])] = &[
     ("0.1.11", &[
-        ("文档库改为真实文件夹：访达里看到的就是侧栏，文件以标题命名；同步盘里的文档库会先征求同意再改", "The library is now real folders: Finder shows what the sidebar shows, files named by title; a library in a synced folder asks first"),
-        ("全新的首次启动：选择文档库位置、设置随手记快捷键，并可从 Obsidian、Logseq、Typora 等导入已有笔记", "A new first launch: pick where the library lives, set the quick-note shortcut, and bring notes from Obsidian, Logseq, Typora and more"),
+        (REAL_FOLDERS, "The library is now real folders named by title, matching the sidebar"),
+        ("全新的首次启动，可从 Obsidian、Typora 等导入笔记", "A new first launch that can bring notes from Obsidian, Typora and more"),
+        ("「打开」就地编辑 Markdown，「导入」复制进文档库", "Open edits Markdown in place; Import copies into the library"),
+        ("新增日语、西班牙语和韩语界面", "Japanese, Spanish, and Korean interfaces"),
+        ("可设置网页搜索、链接浏览器、窗口背景和界面字号", "Set the web search site, link browser, window background, and interface size"),
+        ("文档回到上次的阅读位置", "Documents reopen where you left off"),
+        ("Markdown 支持块级公式和全角标点，表格列宽按内容调整", "Markdown: display math and full-width punctuation; table columns fit their content"),
+        ("导入 Obsidian 的图片嵌入和 callout 提示块", "Import Obsidian picture embeds and callouts"),
+        ("「打开上次使用的文档」快捷键可以修改", "The Open Last Document shortcut can be changed"),
+        ("文档列表跨启动缓存，启动更快", "Faster launch: the document list is cached between launches"),
+        ("新增原样粘贴（⌘⇧V / Ctrl+Shift+V）", "Paste as written (Cmd+Shift+V / Ctrl+Shift+V)"),
+        ("图片更省内存，Markdown 内嵌图片可正常显示", "Pictures use less memory; images embedded in Markdown show"),
+        ("代码块可横向滚动，拖选到边缘时自动滚动", "Code blocks scroll sideways; drag-selecting scrolls at the edge"),
+        ("修复页面跳动、换行处光标、截图粘贴、输入框按词移动和 PDF 扩展名", "Fix page jumps, the caret at wrapped lines, pasting screenshots, moving by word in text fields, and the PDF file extension"),
+        ("Windows：显卡设备丢失后不再崩溃", "Windows: no crash when the graphics device is lost"),
+        ("更新只从官方地址经 HTTPS 下载", "Updates download only from the official site over HTTPS"),
     ]),
     ("0.1.10", &[
         ("Linux AppImage 支持应用内检查、下载并重启更新", "Check, download, and restart to update the Linux AppImage in the app"),
@@ -99,18 +115,19 @@ pub fn card(on_close: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> 
         list = list.child(line(crate::localized_format!("文档库改为真实文件夹：访达里看到的就是侧栏，文件以标题命名（{docs} 篇文档、{folders} 个文件夹）",
             "The library now uses real folders: Finder shows what the sidebar shows, files named by title ({docs} documents, {folders} folders)")));
     }
-    for &(zh, en) in notes.unwrap_or_default() { list = list.child(line(crate::settings::tr(zh, en).into())); }
-    let reveal = moved.map(|_| div().mt(px(6.)).child(crate::settings::link_button("changelog-reveal", crate::settings::tr("在访达中显示", "Show in Finder"))
-        .on_click(|_, _, cx| cx.reveal_path(&crate::store::Store::root_dir()))));
+    for &(zh, en) in notes.unwrap_or_default() {
+        if moved.is_some() && zh == REAL_FOLDERS { continue }
+        list = list.child(line(crate::settings::tr(zh, en).into()));
+    }
     // A continuous-corner white surface; the faint shadow follows its radius.
-    Some(crate::ui::continuous_surface(RADIUS, Theme::bg_body()).id("changelog").flex_none().min_w_0().overflow_hidden().mx(px(crate::sidebar::SB_X - 4.)).mb(px(2.)).pl(px(12.)).pr(px(6.)).pt(px(8.)).pb(px(10.))
+    // At most half the sidebar; a longer list scrolls inside the card.
+    Some(crate::ui::continuous_surface(RADIUS, Theme::bg_body()).id("changelog").flex_none().max_h(relative(0.5)).flex().flex_col().min_w_0().overflow_hidden().mx(px(crate::sidebar::SB_X - 4.)).mb(px(2.)).pl(px(12.)).pr(px(6.)).pt(px(8.)).pb(px(10.))
         .rounded(px(RADIUS)).shadow(crate::theme::shadow_card())
-        .child(div().w_full().min_w_0().flex().items_center().justify_between()
+        .child(div().flex_none().w_full().min_w_0().flex().items_center().justify_between()
             .child(div().text_size(px(13.)).line_height(px(20.)).font_weight(FontWeight::SEMIBOLD).child(title))
             .child(div().id("changelog-close").size(px(20.)).flex().items_center().justify_center().rounded(px(6.)).cursor_pointer()
                 .hover(|s| s.bg(Theme::fill_hover())).child(icon("x", 12., Theme::icon()))
                 .on_click(move |e, w, cx| { PENDING.store(false, Ordering::Relaxed); *MIGRATED.lock().unwrap() = None; on_close(e, w, cx); })))
-        .child(list)
-        .children(reveal)
+        .child(div().id("changelog-list").flex_1().min_h_0().overflow_y_scroll().child(list))
         .into_any_element())
 }

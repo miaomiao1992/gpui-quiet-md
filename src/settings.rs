@@ -109,7 +109,7 @@ pub struct Preferences {
     pub new_default: String,
     /// The type last created from the 新建 menu: "doc" or "markdown" (empty before any).
     pub last_new: String,
-    /// 网页搜索 engine: "bing", "google", "duckduckgo"; empty is 百度.
+    /// 网页搜索 engine: "baidu", "bing", "duckduckgo"; empty is Google.
     pub search_engine: String,
     /// 打开链接: the browser a link opens in ("Safari", "Microsoft Edge"…),
     /// empty for the system default.
@@ -166,6 +166,13 @@ impl Preferences {
 }
 
 fn path() -> std::path::PathBuf { crate::store::Store::internal_dir().join("preferences.json") }
+
+/// Show the interface in `lang` without saving it (first launch, before the library exists).
+pub(crate) fn show_lang(lang: Lang) {
+    let mut p = prefs();
+    p.set_lang(lang);
+    apply(p);
+}
 
 pub fn load() {
     let p = std::fs::read(path()).ok().and_then(|b| serde_json::from_slice::<Preferences>(&b).ok()).unwrap_or_default();
@@ -865,9 +872,9 @@ impl Workspace {
                 // 网页搜索 opens the selection in the browser; which site is the
                 // user's habit, so it is a preference rather than a constant.
                 row(tr("网页搜索", "Web search"), desc(tr("选中文字后「网页搜索」用哪个网站。", "Which site “Web search” opens the selected text in.")), {
-                    let sel = match p.search_engine.as_str() { "bing" => 1, "google" => 2, "duckduckgo" => 3, _ => 0 };
-                    self.select("search-engine", vec![tr("百度", "Baidu"), "Bing", "Google", "DuckDuckGo"], sel,
-                        |w, i, cx| w.set_pref(|p| p.search_engine = ["", "bing", "google", "duckduckgo"][i].into(), cx), cx)
+                    let sel = match p.search_engine.as_str() { "baidu" => 1, "bing" => 2, "duckduckgo" => 3, _ => 0 };
+                    self.select("search-engine", vec!["Google", tr("百度", "Baidu"), "Bing", "DuckDuckGo"], sel,
+                        |w, i, cx| w.set_pref(|p| p.search_engine = ["", "baidu", "bing", "duckduckgo"][i].into(), cx), cx)
                 }).into_any_element(),
             ].into_iter().chain(links).collect()))
             .into_any_element()

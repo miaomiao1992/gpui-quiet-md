@@ -1594,6 +1594,8 @@ impl Workspace {
         let o = cx.new(|cx| crate::onboarding::Onboarding::replay(window, cx));
         cx.subscribe_in(&o, window, |w, _, _: &crate::onboarding::Done, window, cx| {
             w.onboarding = None;
+            // The language may have changed on the first page.
+            crate::settings::refresh_all(w, cx);
             window.focus(&w.focus);
             cx.notify();
         }).detach();
