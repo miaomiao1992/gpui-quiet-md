@@ -575,7 +575,6 @@ pub(super) const STRINGS: &[(&str, &str)] = &[
     ("选中文字后「网页搜索」用哪个网站。", "Sitio en el que “Búsqueda web” abre el texto seleccionado."),
     ("百度", "Baidu"),
     ("默认跟随系统，之后可以在设置里更改", "Sigue al sistema; puedes cambiarlo en Ajustes"),
-    ("需先导出", "Exporta primero"),
     ("内置主题", "Integrados"),
     ("跟随系统", "Sistema"),
     ("浅色", "Claro"),

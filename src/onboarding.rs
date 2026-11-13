@@ -194,9 +194,8 @@ struct Found {
     app: &'static str,
     name: String,
     path: PathBuf,
-    /// Markdown files inside; 0 for apps that have to export first.
+    /// Markdown files inside.
     count: usize,
-    export: Option<(&'static str, &'static str)>,
 }
 
 /// Markdown files under `dir`, without hidden folders, up to a budget of entries.
@@ -223,12 +222,11 @@ fn subdirs(dir: &Path) -> Vec<PathBuf> {
 /// Notes other apps keep on this computer, read only and off the main
 /// thread. Only an app's own places are looked at (never the user's other
 /// folders), and an app shows only when its place really holds notes.
-/// Markdown apps can be imported as they are; Bear and Ulysses keep notes
-/// in a database or packages, so their rows say how to export first.
+/// Only folders that already hold Markdown: apps that keep notes in their
+/// own format (Bear, Ulysses…) are not offered.
 fn discover(library: PathBuf) -> Vec<Found> {
     let home = dirs::home_dir().unwrap_or_default();
     let mobile = home.join("Library/Mobile Documents");
-    let group = home.join("Library/Group Containers");
     let mut candidates: Vec<(&'static str, PathBuf)> = vec![];
     // Obsidian lists its vaults in obsidian.json (macOS, Windows and Linux alike), and keeps iCloud vaults in its container.
     if let Some(cfg) = dirs::config_dir().and_then(|d| std::fs::read(d.join("obsidian/obsidian.json")).ok())
@@ -256,30 +254,10 @@ fn discover(library: PathBuf) -> Vec<Found> {
         let count = count_md(&path, 6, &mut budget);
         if count == 0 { continue }
         let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        out.push(Found { app, name, path, count, export: None });
+        out.push(Found { app, name, path, count });
     }
     out.sort_by_key(|a| std::cmp::Reverse(a.count));
-    // Bear: a non-empty notes database. Ulysses: at least one sheet in its library.
-    let bear = group.join("9K33E3U3T4.net.shinyfrog.bear/Application Data/database.sqlite");
-    if std::fs::metadata(&bear).is_ok_and(|m| m.len() > 0) {
-        out.push(Found { app: "Bear", name: String::new(), path: PathBuf::new(), count: 0,
-            export: Some(("在 Bear 里选择 文件 › 导出笔记 › Markdown，再用上面的「导入文件夹」导入", "In Bear, choose File › Export Notes › Markdown, then import that folder above")) });
-    }
-    let ulysses = [mobile.join("X5AZV975AG~com~soulmen~ulysses3/Documents/Library"), group.join("X5AZV975AG.com.soulmen.shared/Ulysses/Library")];
-    if ulysses.iter().any(|d| has_file(d, "Content.xml", 8)) {
-        out.push(Found { app: "Ulysses", name: String::new(), path: PathBuf::new(), count: 0,
-            export: Some(("在 Ulysses 里把文稿导出为 Markdown，再用上面的「导入文件夹」导入", "In Ulysses, export your sheets as Markdown, then import that folder above")) });
-    }
     out
-}
-
-/// Whether a file named `name` is somewhere under `dir`.
-fn has_file(dir: &Path, name: &str, depth: usize) -> bool {
-    std::fs::read_dir(dir).into_iter().flatten().flatten().any(|e| {
-        let ft = e.file_type();
-        if e.file_name() == name { return true }
-        depth > 0 && ft.is_ok_and(|t| t.is_dir()) && has_file(&e.path(), name, depth - 1)
-    })
 }
 
 // ---- syncing
@@ -420,7 +398,7 @@ impl Onboarding {
         let lib = root.clone();
         cx.spawn(async move |this, cx| {
             let found = cx.background_executor().spawn(async move { discover(lib) }).await;
-            let _ = this.update(cx, |w, cx| { w.chosen = found.iter().map(|f| f.export.is_none()).collect(); w.found = Some(found); cx.notify(); });
+            let _ = this.update(cx, |w, cx| { w.chosen = vec![true; found.len()]; w.found = Some(found); cx.notify(); });
         }).detach();
         let now = Instant::now();
         let cut_at = now + Duration::from_secs_f32(HOLD);
@@ -537,7 +515,7 @@ impl Onboarding {
     fn imports(&self) -> Vec<PathBuf> {
         let mut out = self.picked.clone();
         if let Some(found) = &self.found {
-            out.extend(found.iter().zip(&self.chosen).filter(|(f, on)| **on && f.export.is_none()).map(|(f, _)| f.path.clone()));
+            out.extend(found.iter().zip(&self.chosen).filter(|(_, on)| **on).map(|(f, _)| f.path.clone()));
         }
         out
     }
@@ -684,17 +662,13 @@ impl Onboarding {
         let over = self.film.is_some();
         let found = self.found.as_ref().filter(|f| !f.is_empty()).map(|found| {
             let shown = if self.show_all || found.len() <= FOUND_SHOWN + 1 { found.len() } else { FOUND_SHOWN };
-            let mut rows: Vec<AnyElement> = found.iter().take(shown).enumerate().map(|(i, f)| match f.export {
-                // Kept in the app's own format: nothing to tick, it says what to do instead.
-                Some((zh, en)) => row(f.app, Some(tr(zh, en).into()), div().text_size(px(12.)).text_color(Theme::text_caption()).child(tr("需先导出", "Export first"))).into_any_element(),
-                None => {
-                    let on = self.chosen.get(i).copied().unwrap_or(false);
-                    let title = if f.app == "Markdown" { f.name.clone() } else { format!("{} · {}", f.app, f.name) };
-                    let desc = crate::localized_format!("{} · {} 篇 Markdown", "{} · {} Markdown files", where_short(&f.path), f.count);
-                    div().id(("onb-found", i)).cursor_pointer().hover(|s| s.bg(Theme::fill_hover()))
-                        .on_click(cx.listener(move |w, _, _, cx| { if let Some(c) = w.chosen.get_mut(i) { *c = !*c; } cx.notify(); }))
-                        .child(row(title, Some(desc.into()), tick(on))).into_any_element()
-                }
+            let mut rows: Vec<AnyElement> = found.iter().take(shown).enumerate().map(|(i, f)| {
+                let on = self.chosen.get(i).copied().unwrap_or(false);
+                let title = if f.app == "Markdown" { f.name.clone() } else { format!("{} · {}", f.app, f.name) };
+                let desc = crate::localized_format!("{} · {} 篇 Markdown", "{} · {} Markdown files", where_short(&f.path), f.count);
+                div().id(("onb-found", i)).cursor_pointer().hover(|s| s.bg(Theme::fill_hover()))
+                    .on_click(cx.listener(move |w, _, _, cx| { if let Some(c) = w.chosen.get_mut(i) { *c = !*c; } cx.notify(); }))
+                    .child(row(title, Some(desc.into()), tick(on))).into_any_element()
             }).collect();
             if shown < found.len() {
                 let more = crate::localized_format!("再显示 {} 处", "Show {} more", found.len() - shown);
@@ -703,7 +677,7 @@ impl Onboarding {
                     .on_click(cx.listener(|w, _, _, cx| { w.show_all = true; cx.notify(); })).into_any_element());
             }
             // 全选 when more than one can be ticked.
-            let can: Vec<usize> = found.iter().enumerate().filter(|(_, f)| f.export.is_none()).map(|(i, _)| i).collect();
+            let can: Vec<usize> = (0..found.len()).collect();
             let all = !can.is_empty() && can.iter().all(|&i| self.chosen.get(i).copied().unwrap_or(false));
             let head = div().w_full().px(px(4.)).flex().items_center().justify_between()
                 .child(lifted(over, 12., 16., false, true, crate::localized_format!("在这台电脑上找到 {} 处笔记", "Notes found on this computer ({})", found.len())))
